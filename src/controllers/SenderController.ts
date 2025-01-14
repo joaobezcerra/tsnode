@@ -1,27 +1,30 @@
-import * as amqp from 'amqplib'
-import connection from './../utils/ConnectionAMQP'
+import * as amqp from 'amqplib';
+import connection from './../utils/ConnectionAMQP';
 
 class SenderController {
-  public sender (): void {
+  public sender(queueName = 'hello', messageCount = 10): void {
     amqp.connect(connection)
       .then((conn: amqp.Connection) => {
         conn.createChannel()
           .then((ch: amqp.Channel) => {
-            let qeue = 'hello'
-            let counter = 1
-            ch.assertQueue(qeue, { durable: false })
-            for (let i = 0; i < 10; i++) {
-              let Msg = `n° ${counter++}!`
-              ch.sendToQueue(qeue, Buffer.from(Msg))
-              console.log(' [x] Enviando mensagem %s', Msg)
+            let counter = 1;
+            ch.assertQueue(queueName, { durable: false });
+            for (let i = 0; i < messageCount; i++) {
+              let Msg = `n° ${counter++}!`;
+              ch.sendToQueue(queueName, Buffer.from(Msg));
+              console.log(' [x] Enviando mensagem %s', Msg);
             }
+            conn.close();
           })
-        setTimeout(() => {
-          conn.close()
-          process.exit(0)
-        }, 10000)
+          .catch((err) => {
+            console.error('Erro ao criar canal ou enviar mensagens:', err);
+            conn.close();
+          });
       })
+      .catch((err) => {
+        console.error('Erro ao conectar ao RabbitMQ:', err);
+      });
   }
 }
 
-export default new SenderController()
+export default new SenderController();
